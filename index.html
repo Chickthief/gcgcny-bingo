@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+<title>Sermon Bingo</title>
+<style>
+/* ============================================================================
+   EDIT YOUR PROMPTS in the <script> block near the bottom of this file.
+   Look for the comment "EDIT YOUR PROMPTS HERE".
+   ========================================================================= */
+:root{
+  --lead:#171A21; --ground:#0E1015;
+  --amber:#D8A32B; --amber-hi:#F0C359;
+  --rose:#A8324A; --rose-hi:#C74A62;
+  --parchment:#E8E2D4; --parchment-dim:#9AA3AC;
+  --serif:"Hoefler Text",Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--ground); color:var(--parchment);
+  font-family:var(--sans); min-height:100vh;
+  padding:20px 14px 32px;
+  -webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit;cursor:pointer;border:0}
+button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+
+.sb-wrap{max-width:520px;margin:0 auto}
+
+.sb-intro{padding:28px 4px 26px}
+.sb-title{
+  font-family:var(--serif); font-weight:400;
+  font-size:38px; line-height:1.05; letter-spacing:.01em;
+  margin:0 0 10px;
+}
+.sb-sub{margin:0;font-size:15px;line-height:1.5;color:var(--parchment-dim);max-width:34ch}
+
+.sb-panels{display:flex;flex-direction:column;gap:3px;background:var(--lead);padding:3px}
+.sb-panel{
+  display:flex;flex-direction:column;gap:5px;
+  padding:26px 20px;text-align:left;color:var(--parchment);
+  transition:filter .18s ease; width:100%;
+}
+.sb-panel:hover:not(:disabled){filter:brightness(1.22)}
+.sb-panel:disabled{cursor:not-allowed;filter:saturate(.25) brightness(.7)}
+.sb-glass-blue{background:linear-gradient(150deg,#2B4C7E,#16283F)}
+.sb-glass-green{background:linear-gradient(150deg,#2F5D50,#152C27)}
+.sb-glass-rose{background:linear-gradient(150deg,#8C2B3E,#3A1620)}
+.sb-panel-name{font-family:var(--serif);font-size:23px;line-height:1.1}
+.sb-panel-blurb{font-size:13px;color:rgba(232,226,212,.72);line-height:1.35}
+
+.sb-bar{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.sb-bar-name{font-family:var(--serif);font-weight:400;font-size:24px;margin:0}
+.sb-bar-actions{display:flex;gap:6px}
+.sb-ghost{
+  background:transparent;color:var(--parchment-dim);
+  border:1px solid rgba(232,226,212,.22);
+  padding:6px 11px;font-size:12.5px;
+  transition:color .15s ease,border-color .15s ease;
+}
+.sb-ghost:hover{color:var(--parchment);border-color:rgba(232,226,212,.5)}
+
+.sb-frame{background:var(--lead);padding:3px}
+.sb-grid{display:grid;gap:3px}
+.sb-cell{
+  aspect-ratio:1/1; display:flex; align-items:center; justify-content:center;
+  padding:5px 3px; overflow:hidden;
+  background:linear-gradient(155deg,#26364A,#18222E);
+  color:var(--parchment);
+  transition:background .18s ease,color .18s ease;
+  animation:sb-in .34s ease both;
+}
+.sb-cell:hover:not(.is-marked):not(.is-free){background:linear-gradient(155deg,#31465F,#1F2C3B)}
+.sb-cell.is-marked{
+  background:linear-gradient(155deg,var(--amber-hi),var(--amber));
+  color:#24190A;
+}
+.sb-cell.is-won{
+  background:linear-gradient(155deg,var(--rose-hi),var(--rose));
+  color:#FBEFE2;
+}
+.sb-cell.is-free{cursor:default}
+.sb-cell-text{
+  font-size:clamp(8.5px,2.4vw,12px); line-height:1.18;
+  text-align:center; hyphens:auto; word-break:break-word;
+}
+@media (min-width:540px){.sb-cell-text{font-size:12px}}
+
+.sb-status{margin:14px 2px 0;font-size:13px;line-height:1.45;color:var(--parchment-dim)}
+
+.sb-hidden{display:none}
+
+@keyframes sb-in{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+
+<div class="sb-wrap">
+
+  <!-- Pastor picker screen -->
+  <div id="sb-picker">
+    <header class="sb-intro">
+      <h1 class="sb-title">Sermon Bingo</h1>
+      <p class="sb-sub">Who's preaching today?</p>
+    </header>
+    <div class="sb-panels" id="sb-panels"></div>
+  </div>
+
+  <!-- Game screen -->
+  <div id="sb-game" class="sb-hidden">
+    <header class="sb-bar">
+      <h2 class="sb-bar-name" id="sb-bar-name"></h2>
+      <div class="sb-bar-actions">
+        <button class="sb-ghost" id="sb-new-card">New card</button>
+        <button class="sb-ghost" id="sb-change-pastor">Change pastor</button>
+      </div>
+    </header>
+    <div class="sb-frame">
+      <div class="sb-grid" id="sb-grid"></div>
+    </div>
+    <p class="sb-status" role="status" id="sb-status"></p>
+  </div>
+
+</div>
+
+<script>
+/* ============================================================================
+   EDIT YOUR PROMPTS HERE — everything you need is in this one block.
+
+   1. SHARED_PROMPTS  — lines that could apply to any pastor at your church.
+   2. PASTORS         — one entry per pastor, with their own personal lines.
+
+   To add a pastor: copy an entry in PASTORS, change the id (must be unique),
+   name, blurb, hue ("blue", "green", or "rose"), and prompts.
+   The picker screen updates itself automatically.
+
+   Each pastor's pool = SHARED_PROMPTS + their own prompts (set
+   useShared: false if you want a pastor to use only their own lines).
+
+   Keep lines under about 38 characters so they fit the squares on a phone.
+   You need at least 25 lines in a pool for a full card; if you're short,
+   the panel will grey out and tell you how many more to add.
+   ========================================================================= */
+
+const SHARED_PROMPTS = [
+  "Calls a congregation member out by name",
+  "Mentions their spouse",
+  "Takes a drink of water",
+  'Says "one last thing"',
+  "Quotes C.S. Lewis",
+  "References a movie",
+  '"As I was preparing this week"',
+  "Admits their own failure",
+  "The slides don't advance",
+  "Mentions social media",
+  "Mentions the parking lot",
+  "Talks about the weather",
+  "Mentions a book they're reading",
+  "6 and 7 appear on the same slide",
+  "Does a Hebrew word study",
+  "References a worship song",
+  "Mentions the church building",
+  "References a previous sermon",
+  "References mission statement",
+];
+
+const PASTORS = [
+  {
+    id: "santos",
+    name: "Pastor Santos",
+    hue: "blue",
+    useShared: true,
+    prompts: [
+      "Object lesson with a prop",
+      "References a video game",
+      "Discusses historical context",
+      "Mentions the retreat",
+      "Anecdote about childhood",
+      "Asks non-rhetorical question",
+      "Mentions one of his brothers",
+      "Uses a sports illustration",
+      "Cites statistics",
+    ],
+  },
+  {
+    id: "michelle",
+    name: "Pastor Michelle",
+    hue: "green",
+    useShared: true,
+    prompts: [
+      "Cries",
+      "Sings",
+      "Calls out a specific row",
+      "Animated slide transitions",
+      "Mentions her grandchildren",
+      "Mentions her time in Korea",
+      "Yells",
+      "Sound effects",
+    ],
+  },
+  {
+    id: "ted",
+    name: "Pastor Ted",
+    hue: "rose",
+    useShared: true,
+    prompts: [
+      "Talks about 9/11",
+      "Talks about current events",
+      '"Back when I was in seminary"',
+      "Talks about food",
+      "Uses slang unironically",
+      "Uses slang incorrectly",
+      "References a celebrity",
+      "Main points contain an alliteration",
+    ],
+  },
+];
+
+/* Card settings.
+   FREE_SPACE: set to true for a classic free centre square (draws 24 lines
+   instead of 25 and marks the middle for you). */
+const CARD_SIZE = 5;
+const FREE_SPACE = false;
+
+/* ========================================================================= */
+/* ---- everything below this line is game engine, not content ---- */
+
+const CELLS = CARD_SIZE * CARD_SIZE;
+const CENTER = Math.floor(CELLS / 2);
+
+function poolFor(pastor) {
+  return pastor.useShared === false
+    ? pastor.prompts.slice()
+    : SHARED_PROMPTS.concat(pastor.prompts);
+}
+
+function shuffle(list) {
+  const a = list.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function dealCard(pastor) {
+  const needed = FREE_SPACE ? CELLS - 1 : CELLS;
+  const picked = shuffle(poolFor(pastor)).slice(0, needed);
+  const cells = [];
+  for (let i = 0; i < CELLS; i++) {
+    if (FREE_SPACE && i === CENTER) {
+      cells.push({ text: "Free space", free: true, marked: true });
+    } else {
+      cells.push({ text: picked.pop(), free: false, marked: false });
+    }
+  }
+  return cells;
+}
+
+const LINES = (() => {
+  const out = [];
+  for (let r = 0; r < CARD_SIZE; r++)
+    out.push(Array.from({ length: CARD_SIZE }, (_, c) => r * CARD_SIZE + c));
+  for (let c = 0; c < CARD_SIZE; c++)
+    out.push(Array.from({ length: CARD_SIZE }, (_, r) => r * CARD_SIZE + c));
+  out.push(Array.from({ length: CARD_SIZE }, (_, i) => i * CARD_SIZE + i));
+  out.push(Array.from({ length: CARD_SIZE }, (_, i) => i * CARD_SIZE + (CARD_SIZE - 1 - i)));
+  return out;
+})();
+
+let currentPastor = null;
+let cells = [];
+
+const pickerEl = document.getElementById("sb-picker");
+const gameEl = document.getElementById("sb-game");
+const panelsEl = document.getElementById("sb-panels");
+const barNameEl = document.getElementById("sb-bar-name");
+const gridEl = document.getElementById("sb-grid");
+const statusEl = document.getElementById("sb-status");
+
+function renderPicker() {
+  panelsEl.innerHTML = "";
+  PASTORS.forEach((p) => {
+    const size = poolFor(p).length;
+    const needed = FREE_SPACE ? CELLS - 1 : CELLS;
+    const short = size < needed;
+    const btn = document.createElement("button");
+    btn.className = "sb-panel sb-glass-" + p.hue;
+    btn.disabled = short;
+    btn.innerHTML =
+      '<span class="sb-panel-name">' + escapeHtml(p.name) + "</span>" +
+      '<span class="sb-panel-blurb">' +
+      (short
+        ? size + " lines — needs " + (needed - size) + " more to fill a card"
+        : escapeHtml(p.blurb)) +
+      "</span>";
+    btn.addEventListener("click", () => startGame(p));
+    panelsEl.appendChild(btn);
+  });
+}
+
+function escapeHtml(s) {
+  const d = document.createElement("div");
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function startGame(pastor) {
+  currentPastor = pastor;
+  cells = dealCard(pastor);
+  pickerEl.classList.add("sb-hidden");
+  gameEl.classList.remove("sb-hidden");
+  barNameEl.textContent = pastor.name;
+  renderGrid();
+}
+
+function renderGrid() {
+  gridEl.style.gridTemplateColumns = "repeat(" + CARD_SIZE + ", 1fr)";
+  gridEl.innerHTML = "";
+  const winningSet = winningCells();
+  cells.forEach((cell, i) => {
+    const btn = document.createElement("button");
+    let cls = "sb-cell";
+    if (cell.marked) cls += " is-marked";
+    if (winningSet.has(i)) cls += " is-won";
+    if (cell.free) cls += " is-free";
+    btn.className = cls;
+    btn.style.animationDelay = i * 14 + "ms";
+    btn.setAttribute("aria-pressed", cell.marked ? "true" : "false");
+    btn.innerHTML = '<span class="sb-cell-text">' + escapeHtml(cell.text) + "</span>";
+    if (!cell.free) {
+      btn.addEventListener("click", () => {
+        cells[i].marked = !cells[i].marked;
+        renderGrid();
+      });
+    }
+    gridEl.appendChild(btn);
+  });
+  updateStatus(winningSet);
+}
+
+function winningCells() {
+  const w = new Set();
+  LINES.forEach((line) => {
+    if (line.every((i) => cells[i] && cells[i].marked)) line.forEach((i) => w.add(i));
+  });
+  return w;
+}
+
+function updateStatus(winningSet) {
+  const marked = cells.filter((c) => c.marked).length;
+  statusEl.textContent =
+    winningSet.size > 0
+      ? "Bingo. Hold the celebration until after the benediction."
+      : marked + " of " + CELLS + " marked";
+}
+
+document.getElementById("sb-new-card").addEventListener("click", () => {
+  cells = dealCard(currentPastor);
+  renderGrid();
+});
+
+document.getElementById("sb-change-pastor").addEventListener("click", () => {
+  gameEl.classList.add("sb-hidden");
+  pickerEl.classList.remove("sb-hidden");
+  renderPicker();
+});
+
+renderPicker();
+</script>
+</body>
+</html>
