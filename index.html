@@ -137,7 +137,7 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
    2. PASTORS         — one entry per pastor, with their own personal lines.
 
    To add a pastor: copy an entry in PASTORS, change the id (must be unique),
-   name, blurb, hue ("blue", "green", or "rose"), and prompts.
+   name, blurb (optional), hue ("blue", "green", or "rose"), and prompts.
    The picker screen updates itself automatically.
 
    Each pastor's pool = SHARED_PROMPTS + their own prompts (set
@@ -276,6 +276,7 @@ const LINES = (() => {
 
 let currentPastor = null;
 let cells = [];
+let cellEls = [];
 
 const pickerEl = document.getElementById("sb-picker");
 const gameEl = document.getElementById("sb-game");
@@ -293,13 +294,12 @@ function renderPicker() {
     const btn = document.createElement("button");
     btn.className = "sb-panel sb-glass-" + p.hue;
     btn.disabled = short;
+    const blurbText = short
+      ? size + " lines — needs " + (needed - size) + " more to fill a card"
+      : (p.blurb ? escapeHtml(p.blurb) : "");
     btn.innerHTML =
       '<span class="sb-panel-name">' + escapeHtml(p.name) + "</span>" +
-      '<span class="sb-panel-blurb">' +
-      (short
-        ? size + " lines — needs " + (needed - size) + " more to fill a card"
-        : escapeHtml(p.blurb)) +
-      "</span>";
+      (blurbText ? '<span class="sb-panel-blurb">' + blurbText + "</span>" : "");
     btn.addEventListener("click", () => startGame(p));
     panelsEl.appendChild(btn);
   });
@@ -317,30 +317,41 @@ function startGame(pastor) {
   pickerEl.classList.add("sb-hidden");
   gameEl.classList.remove("sb-hidden");
   barNameEl.textContent = pastor.name;
-  renderGrid();
+  buildGrid();
 }
 
-function renderGrid() {
+// Builds the 25 buttons from scratch. Only called when a brand new card is
+// dealt (new pastor or "New card") — this is the only time the fade-in
+// animation should play.
+function buildGrid() {
   gridEl.style.gridTemplateColumns = "repeat(" + CARD_SIZE + ", 1fr)";
   gridEl.innerHTML = "";
-  const winningSet = winningCells();
-  cells.forEach((cell, i) => {
+  cellEls = cells.map((cell, i) => {
     const btn = document.createElement("button");
-    let cls = "sb-cell";
-    if (cell.marked) cls += " is-marked";
-    if (winningSet.has(i)) cls += " is-won";
-    if (cell.free) cls += " is-free";
-    btn.className = cls;
+    btn.className = "sb-cell" + (cell.free ? " is-free" : "");
     btn.style.animationDelay = i * 14 + "ms";
-    btn.setAttribute("aria-pressed", cell.marked ? "true" : "false");
     btn.innerHTML = '<span class="sb-cell-text">' + escapeHtml(cell.text) + "</span>";
     if (!cell.free) {
       btn.addEventListener("click", () => {
         cells[i].marked = !cells[i].marked;
-        renderGrid();
+        refreshGrid();
       });
     }
     gridEl.appendChild(btn);
+    return btn;
+  });
+  refreshGrid();
+}
+
+// Updates marked/won state and aria-pressed on the EXISTING buttons only —
+// no elements are recreated, so no square replays its entrance animation.
+function refreshGrid() {
+  const winningSet = winningCells();
+  cells.forEach((cell, i) => {
+    const btn = cellEls[i];
+    btn.classList.toggle("is-marked", cell.marked);
+    btn.classList.toggle("is-won", winningSet.has(i));
+    btn.setAttribute("aria-pressed", cell.marked ? "true" : "false");
   });
   updateStatus(winningSet);
 }
@@ -363,7 +374,7 @@ function updateStatus(winningSet) {
 
 document.getElementById("sb-new-card").addEventListener("click", () => {
   cells = dealCard(currentPastor);
-  renderGrid();
+  buildGrid();
 });
 
 document.getElementById("sb-change-pastor").addEventListener("click", () => {
