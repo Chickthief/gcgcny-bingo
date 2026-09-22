@@ -62,6 +62,13 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
   transition:color .15s ease,border-color .15s ease;
 }
 .sb-ghost:hover{color:var(--parchment);border-color:rgba(232,226,212,.5)}
+.sb-share{
+  background:linear-gradient(135deg,var(--amber-hi),var(--amber));
+  color:#24190A; font-weight:600;
+  padding:6px 14px;font-size:12.5px;
+  transition:filter .15s ease;
+}
+.sb-share:hover{filter:brightness(1.08)}
 
 .sb-frame{background:var(--lead);padding:3px}
 .sb-grid{display:grid;gap:3px}
@@ -117,6 +124,7 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
     <header class="sb-bar">
       <h2 class="sb-bar-name" id="sb-bar-name"></h2>
       <div class="sb-bar-actions">
+        <button class="sb-share" id="sb-share">Share</button>
         <button class="sb-ghost" id="sb-new-card">New card</button>
         <button class="sb-ghost" id="sb-change-pastor">Change pastor</button>
       </div>
@@ -226,7 +234,7 @@ const PASTORS = [
    FREE_SPACE: set to true for a classic free centre square (draws 24 lines
    instead of 25 and marks the middle for you). */
 const CARD_SIZE = 5;
-const FREE_SPACE = false;
+const FREE_SPACE = true;
 
 /* ========================================================================= */
 /* ---- everything below this line is game engine, not content ---- */
@@ -255,7 +263,7 @@ function dealCard(pastor) {
   const cells = [];
   for (let i = 0; i < CELLS; i++) {
     if (FREE_SPACE && i === CENTER) {
-      cells.push({ text: "Free space", free: true, marked: true });
+      cells.push({ text: "Jesus", free: true, marked: true });
     } else {
       cells.push({ text: picked.pop(), free: false, marked: false });
     }
@@ -372,12 +380,89 @@ function updateStatus(winningSet) {
       : marked + " of " + CELLS + " marked";
 }
 
+function buildShareText() {
+  const winningSet = winningCells();
+  const marked = cells.filter((c) => c.marked).length;
+  const bingo = winningSet.size > 0;
+
+  const rows = [];
+  for (let r = 0; r < CARD_SIZE; r++) {
+    let row = "";
+    for (let c = 0; c < CARD_SIZE; c++) {
+      const i = r * CARD_SIZE + c;
+      const cell = cells[i];
+      if (cell.free) row += "\u271D\uFE0F";
+      else if (winningSet.has(i)) row += "\u{1F7E5}";
+      else if (cell.marked) row += "\u{1F7E8}";
+      else row += "\u2B1B";
+    }
+    rows.push(row);
+  }
+
+  const scoreLine = bingo ? "BINGO! \u{1F389} (" + marked + "/25)" : marked + "/25 marked";
+  const url = window.location.origin + window.location.pathname;
+
+  return (
+    "Sermon Bingo \u2014 " + currentPastor.name + "\n" +
+    scoreLine + "\n\n" +
+    rows.join("\n") + "\n\n" +
+    url
+  );
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.left = "-9999px";
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand("copy");
+  } catch (e) {
+    /* nothing more we can do */
+  }
+  document.body.removeChild(ta);
+}
+
+function showToast(message) {
+  statusEl.textContent = message;
+  setTimeout(() => refreshGrid(), 1500);
+}
+
+async function shareCard() {
+  const text = buildShareText();
+  if (navigator.share) {
+    try {
+      await navigator.share({ text: text });
+    } catch (e) {
+      /* user cancelled the share sheet — nothing to do */
+    }
+    return;
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast("Copied to clipboard!");
+      return;
+    } catch (e) {
+      /* fall through to the manual fallback below */
+    }
+  }
+  fallbackCopy(text);
+  showToast("Copied to clipboard!");
+}
+
+document.getElementById("sb-share").addEventListener("click", shareCard);
+
 document.getElementById("sb-new-card").addEventListener("click", () => {
+  if (!window.confirm("Start a new card? Your current marks will be lost.")) return;
   cells = dealCard(currentPastor);
   buildGrid();
 });
 
 document.getElementById("sb-change-pastor").addEventListener("click", () => {
+  if (!window.confirm("Change pastor? Your current card will be lost.")) return;
   gameEl.classList.add("sb-hidden");
   pickerEl.classList.remove("sb-hidden");
   renderPicker();
