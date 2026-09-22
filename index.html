@@ -158,18 +158,18 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 
 const SHARED_PROMPTS = [
   "Calls a congregation member out by name",
-  "Mentions their spouse",
+  '"My wife/husband"',
   "Takes a drink of water",
-  'Says "one last thing"',
+  '"One last thing"',
   "Quotes C.S. Lewis",
   "References a movie",
+  "References a Christian book",
   '"As I was preparing this week"',
   "Admits their own failure",
   "The slides don't advance",
   "Mentions social media",
-  "Mentions the parking lot",
+  '"The parking lot"',
   "Talks about the weather",
-  "Mentions a book they're reading",
   "6 and 7 appear on the same slide",
   "Does a Hebrew word study",
   "References a worship song",
@@ -188,11 +188,11 @@ const PASTORS = [
       "Object lesson with a prop",
       "References a video game",
       "Discusses historical context",
-      "Mentions the retreat",
+      '"The retreat"',
       "Anecdote about childhood",
       "Asks non-rhetorical question",
       "Mentions one of his brothers",
-      "Uses a sports illustration",
+      "Sports analogy",
       "Cites statistics",
     ],
   },
@@ -206,7 +206,7 @@ const PASTORS = [
       "Sings",
       "Calls out a specific row",
       "Animated slide transitions",
-      "Mentions her grandchildren",
+      '"My grandchildren"',
       "Mentions her time in Korea",
       "Yells",
       "Sound effects",
@@ -218,14 +218,14 @@ const PASTORS = [
     hue: "rose",
     useShared: true,
     prompts: [
-      "Talks about 9/11",
+      '"9/11"',
       "Talks about current events",
       '"Back when I was in seminary"',
-      "Talks about food",
-      "Uses slang unironically",
-      "Uses slang incorrectly",
-      "References a celebrity",
-      "Main points contain an alliteration",
+      "Food",
+      "Gen alpha slang",
+      "Celebrity name-drop",
+      "Alliterative main points",
+      "Talks about other religions,"
     ],
   },
 ];
@@ -263,7 +263,7 @@ function dealCard(pastor) {
   const cells = [];
   for (let i = 0; i < CELLS; i++) {
     if (FREE_SPACE && i === CENTER) {
-      cells.push({ text: "Jesus", free: true, marked: true });
+      cells.push({ text: "FREE SPACE: JESUS", free: true, marked: true });
     } else {
       cells.push({ text: picked.pop(), free: false, marked: false });
     }
