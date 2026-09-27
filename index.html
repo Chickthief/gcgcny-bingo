@@ -263,7 +263,7 @@ function dealCard(pastor) {
   const cells = [];
   for (let i = 0; i < CELLS; i++) {
     if (FREE_SPACE && i === CENTER) {
-      cells.push({ text: "Jesus", free: true, marked: true });
+      cells.push({ text: "FREE SPACE: JESUS", free: true, marked: true });
     } else {
       cells.push({ text: picked.pop(), free: false, marked: false });
     }
