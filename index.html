@@ -49,6 +49,7 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 .sb-glass-blue{background:linear-gradient(150deg,#2B4C7E,#16283F)}
 .sb-glass-green{background:linear-gradient(150deg,#2F5D50,#152C27)}
 .sb-glass-rose{background:linear-gradient(150deg,#8C2B3E,#3A1620)}
+.sb-glass-violet{background:linear-gradient(150deg,#4F3A7A,#211833)}
 .sb-panel-name{font-family:var(--serif);font-size:23px;line-height:1.1}
 .sb-panel-blurb{font-size:13px;color:rgba(232,226,212,.72);line-height:1.35}
 
@@ -145,7 +146,7 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
    2. PASTORS         — one entry per pastor, with their own personal lines.
 
    To add a pastor: copy an entry in PASTORS, change the id (must be unique),
-   name, blurb (optional), hue ("blue", "green", or "rose"), and prompts.
+   name, blurb (optional), hue ("blue", "green", "rose", or "violet"), and prompts.
    The picker screen updates itself automatically.
 
    Each pastor's pool = SHARED_PROMPTS + their own prompts (set
@@ -157,7 +158,6 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
    ========================================================================= */
 
 const SHARED_PROMPTS = [
-  "Calls a congregation member out by name",
   "Mentions spouse",
   "Takes a drink of water",
   '"One last thing"',
@@ -171,11 +171,15 @@ const SHARED_PROMPTS = [
   '"The parking lot"',
   "Talks about the weather",
   "6 and 7 appear on the same slide",
-  "Does a Hebrew word study",
+  "Does a Hebrew/Greek word study",
   "References a worship song",
   "Mentions the church building",
   "References a previous sermon",
   "References mission statement",
+  "Passage from Matthew",
+  "Passage from Isaiah",
+  "Compliments the worship team",
+  "Powerpoint typo",
 ];
 
 const PASTORS = [
@@ -211,6 +215,7 @@ const PASTORS = [
       "Yells",
       "Sound effects",
       '"I am the least"',
+      "Calls a congregation member out by name",
     ],
   },
   {
@@ -226,7 +231,19 @@ const PASTORS = [
       "Gen alpha slang",
       "Celebrity name-drop",
       "Alliterative main points",
-      "Talks about other religions,"
+      "Talks about other religions",
+      "Calls a congregation member out by name",
+    ],
+  },
+  {
+    // Guest speakers: shared prompts + lines about being a visitor.
+    id: "guest",
+    name: "Guest Speaker",
+    hue: "violet",
+    useShared: true,
+    prompts: [
+      "Mentions their own ministry",
+      "Name-drops our senior pastor",
     ],
   },
 ];
@@ -264,7 +281,7 @@ function dealCard(pastor) {
   const cells = [];
   for (let i = 0; i < CELLS; i++) {
     if (FREE_SPACE && i === CENTER) {
-      cells.push({ text: "FREE SPACE: JESUS", free: true, marked: true });
+      cells.push({ text: "FREE SPACE: Jesus", free: true, marked: true });
     } else {
       cells.push({ text: picked.pop(), free: false, marked: false });
     }
